@@ -1,0 +1,52 @@
+# name = Mehmet Yagiz Gunduz
+# student no = 2310100
+.pos 0
+        irmovq stack, %rsp
+        irmovq ele0, %rdi
+        call rrev
+        halt
+
+.pos 0x100
+ele0:
+.quad 0x0000a
+.quad ele1
+ele1:
+.quad 0x000b0
+.quad ele2
+ele2:
+.quad 0x00c00
+.quad ele3
+ele3:
+.quad 0x0d000
+.quad ele4
+ele4:
+.quad 0xe0000
+.quad 0
+
+
+rrev:
+        rrmovq %rdi, %rax       # return -> head
+        andq %rdi, %rdi         # if head is null simply return
+        je test
+        mrmovq 8(%rdi), %r8
+        andq %r8, %r8           # if head->next is null return
+        je test
+        rrmovq %rdi, %r10
+        pushq %r10              # save head
+        mrmovq 8(%rdi), %rdi
+        call rrev               # recursive call here for rev_head
+        popq %r10               # get head
+        rmmovq %r10, 24(%r10)   # head->next->next = head
+        irmovq $0, %r11
+        rmmovq %r11, 8(%r10)
+        ret
+
+test:
+        ret
+
+
+
+.pos 0x300
+stack:
+
+
