@@ -9,16 +9,11 @@
  * Please fill in the following team struct 
  */
 team_t team = {
-    "Sanal Akincilar",                  /* Team name */
+                     
 
     "Mehmet Yagiz Gunduz",              /* First member full name */
     "e2310100",                 	/* First member id */
-
-    "Bugra Alparslan",                  /* Second member full name (leave blank if none) */
-    "e2309607",                         /* Second member id (leave blank if none) */
-
-    "Melisa Nur Kart",                         /* Third member full name (leave blank if none) */
-    "e2237592"                          /* Third member id (leave blank if none) */
+                          
 };
 
 /****************
