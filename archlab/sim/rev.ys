@@ -1,0 +1,51 @@
+# name = Mehmet Yagiz Gunduz
+# student id = 2310100
+
+
+.pos 0
+        irmovq stack, %rsp
+        call rev
+        halt
+
+.pos 0x100
+ele0:
+.quad 0x0000a
+.quad ele1
+ele1:
+.quad 0x000b0
+.quad ele2
+ele2:
+.quad 0x00c00
+.quad ele3
+ele3:
+.quad 0x0d000
+.quad ele4
+ele4:
+.quad 0xe0000
+.quad 0
+
+
+rev:
+        irmovq ele0, %rdi  #Store head in rdi
+        irmovq $0, %rax         # prev = 0
+        call test
+        ret
+
+
+loop:                           # loop starts here
+        mrmovq 8(%rdi), %r8
+        rmmovq %rax, 8(%rdi)
+        rrmovq %rdi, %rax
+        rrmovq %r8, %rdi
+
+test:
+        andq %rdi, %rdi         #if head is not null go loop again
+        jne loop
+        ret
+
+
+
+.pos 0x300
+stack:
+
+
