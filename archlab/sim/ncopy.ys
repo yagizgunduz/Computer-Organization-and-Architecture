@@ -1,0 +1,225 @@
+#/* $begin ncopy-ys */
+##################################################################
+# ncopy.ys - Copy a src block of len words to dst.
+# Return the number of positive words (>0) contained in src.
+#
+# Include your name and ID here.
+# name = Mehmet Yagiz Gunduz
+# student id = 2310100
+#
+# Describe how and why you modified the baseline code.
+# For optimizing the performance of ncopy, these methods I implemented:
+# Loop unrolling by factor of 10 and loading value early so it should be ready for the time
+# the next instruction needing. 
+# a cycle is being wasted when mrmovq and rmmovq is contiguous -> data hazard
+# I try to eliminate these hazard by adding an instruction between them.
+# But in general I couldn't eliminate all of them because of the 1000 byte limit
+# Which means i tried to find the balance between efficiency and limit
+# Instead of reading and placing one value in one iteration, I read and replace 9.
+# In the first part I make some set up -> set the count 0.
+# In the second part I make loop unrolling -> if length > 9, it reads read and place nine values in one loop iteration
+# In the final part I treated the remaining values.
+# Between second and third step I implement my jumptable
+# I replaced all addq with iaddq for efficiency if the value is known like x++ or x--
+# Jumps are used too. 
+#
+##################################################################
+# Do not modify this portion
+# Function prologue.
+# %rdi = src, %rsi = dst, %rdx = len
+ncopy:
+
+##################################################################
+# You can modify this portion
+        # Loop header
+        xorq %rax,%rax          # count = 0;
+        iaddq $-9, %rdx         # len -= 9
+        jle test                # if len is less than or equal to 9, we treat it differently
+
+
+
+loop:                                   #size>9
+        mrmovq (%rdi), %r8              # Read first value from src
+        mrmovq 8(%rdi), %r9             # Read second value from src
+        mrmovq 16(%rdi), %r10           # read third value from src
+        mrmovq 24(%rdi), %r11           # read fourth value from src
+        andq %r8, %r8                   # test first value
+        jle first                       # if <= 0 jump to 'first' without incrementing the len
+        iaddq $1, %rax                  # if positive increment return value count
+
+
+first:
+        rmmovq %r9, 8(%rsi)             # move second value to second destination 
+        rmmovq %r8, (%rsi)              # move first value to first destination
+        andq %r9, %r9                   # test second value
+        jle second                      # if <= 0 jump to 'second' without incrementing the len
+        iaddq $1, %rax                  # if positive increment return value count
+
+
+
+second:
+        rmmovq %r10, 16(%rsi)           # it continues like this
+        rmmovq %r11, 24(%rsi)
+        mrmovq 32(%rdi), %r8
+        mrmovq 40(%rdi), %r9
+        andq %r10, %r10
+        jle third
+        iaddq $1, %rax
+
+
+third:                                  # little checks here in different place
+        andq %r11, %r11
+        jle fourth
+        iaddq $1, %rax
+
+
+fourth:
+        andq %r8, %r8
+        jle fifth
+        iaddq $1, %rax
+
+
+
+fifth:
+        rmmovq %r8, 32(%rsi)
+        rmmovq %r9, 40(%rsi)
+        mrmovq 48(%rdi), %r10
+        mrmovq 56(%rdi), %r11
+        andq %r9, %r9
+        jle sixth
+        iaddq $1, %rax
+
+
+sixth:
+        andq %r10, %r10
+        mrmovq 64(%rdi), %r8
+        mrmovq 72(%rdi), %r9
+        jle seventh
+        iaddq $1, %rax
+seventh:
+        rmmovq %r10, 48(%rsi)
+        rmmovq %r11, 56(%rsi)
+        rmmovq %r8, 64(%rsi)
+        rmmovq %r9, 72(%rsi)
+        andq %r11, %r11
+        jle eight
+        iaddq $1, %rax
+
+
+eight:
+        andq %r8, %r8
+        jle ninth
+        iaddq $1, %rax
+
+
+ninth:
+        andq %r9, %r9
+        jle continue
+        iaddq $1, %rax
+
+
+continue:
+        iaddq $80, %rdi    # update the src pointer
+        iaddq $80, %rsi    # update the dest pointer
+        iaddq $-10, %rdx    # subtract 10 from length to determine which label to jump to
+        jg loop
+
+
+test:                                   # remainder handling
+        addq %rdx, %rdx                 # multiply len by 8
+        addq %rdx, %rdx
+        addq %rdx, %rdx
+        mrmovq Bottom(%rdx), %rdx       # rdx = *(Bottom - 8*(size%9))
+        mrmovq (%rdi), %r8
+        pushq %rdx                      # push the jump address
+        ret                             # jump the place of it in the table
+
+
+#my jumptable
+        .quad Done
+        .quad myfirst
+        .quad mysecond
+        .quad mythird
+        .quad myfourth
+        .quad myfifth
+        .quad mysixth
+        .quad myseventh
+        .quad myeight
+Bottom:
+        .quad myninth
+
+myninth:
+        mrmovq 64(%rdi), %r9            # after here i implemented with hazard i know
+        rmmovq %r9, 64(%rsi)            # but this should be done for the 1000 limit
+        andq %r9, %r9                   # still the code works very good though
+        jle myeight
+        iaddq $1, %rax
+
+
+myeight:
+        mrmovq 56(%rdi), %r9            # move src to temp register
+        rmmovq %r9, 56(%rsi)            # move temp register to dst
+        andq %r9, %r9
+        jle myseventh
+        iaddq $1, %rax
+
+myseventh:
+        mrmovq 48(%rdi), %r9
+        rmmovq %r9, 48(%rsi)
+        andq %r9, %r9
+        jle mysixth
+        iaddq $1, %rax
+
+mysixth:
+        mrmovq 40(%rdi), %r9
+        rmmovq %r9, 40(%rsi)
+        andq %r9, %r9
+        jle myfifth
+        iaddq $1, %rax
+
+myfifth:
+        mrmovq 32(%rdi), %r9
+        rmmovq %r9, 32(%rsi)
+        andq %r9, %r9
+        jle myfourth
+        iaddq $1, %rax
+
+myfourth:
+        mrmovq 24(%rdi), %r9
+        rmmovq %r9, 24(%rsi)
+        andq %r9, %r9
+        jle mythird
+        iaddq $1, %rax
+
+mythird:
+        mrmovq 16(%rdi), %r9
+        rmmovq %r9, 16(%rsi)
+        andq %r9, %r9
+        jle mysecond
+        iaddq $1, %rax
+
+mysecond:
+        mrmovq 8(%rdi), %r9
+        rmmovq %r9, 8(%rsi)
+        andq %r9, %r9
+        jle myfirst
+        iaddq $1, %rax
+
+myfirst:
+        mrmovq (%rdi), %r9
+        rmmovq %r9, (%rsi)
+        andq %r9, %r9
+        jle Done
+        iaddq $1, %rax
+
+
+##################################################################
+# Do not modify the following section of code
+# Function epilogue.
+Done:
+        ret
+##################################################################
+# Keep the following label at the end of your function
+End:
+                                                                                   218,4         99%
+
