@@ -1,0 +1,107 @@
+# name = Mehmet Yagiz Gunduz
+# student no = 2310100
+
+.pos 0
+        irmovq stack, %rsp
+        irmovq array, %rsi      # src
+        irmovq arrayp3, %rdi    # dst
+        irmovq $5, %rdx         # len
+        call move
+        halt
+
+
+
+.pos 0x100
+array:
+        .quad 0x000000001
+        .quad 0x000000020
+        .quad 0x000000300
+# a pointer to the fourth element here
+arrayp3:
+        .quad 0x000004000
+        .quad 0x000050000
+        .quad 0x000600000
+        .quad 0x007000000
+        .quad 0x080000000
+        .quad 0x900000000
+
+
+move:
+        rrmovq %rdi, %r8        # dst_v = dst
+        rrmovq %rsi, %r9        # src_v = src
+        irmovq $0, %rax         # checksum = 0
+        irmovq $1, %rcx         # step = 1
+        irmovq $8, %rbx         # elem_size = sizeof(long)
+        rrmovq %r9, %r13
+        subq %r8, %r13          # src_v - dst_v
+        jl heyo                 # check if < 0
+        rrmovq %rcx, %r12       # multiply step by 8
+        addq %r12, %rcx
+        addq %r12, %rcx
+        addq %r12, %rcx
+        addq %r12, %rcx
+        addq %r12, %rcx
+        addq %r12, %rcx
+        addq %r12, %rcx
+        jmp loop                # jump while 
+
+
+mult:
+        addq %r11, %r10         # multiplication function for elem_size and len
+        iaddq $-1, %r12
+        andq %r12, %r12
+        jne mult
+        ret
+
+heyo:
+        rrmovq %r8, %r14
+        subq %r9, %r14          # dst_v - src_v
+        rrmovq %rdx, %r12       # move len
+        rrmovq %rbx, %r10       # move elem_size
+        rrmovq %r10, %r11
+        iaddq $-1, %r12         # firstly subtract 1 for correct multiplication
+        call mult               # this is for elem_size*len
+        subq %r10, %r14         # r14 -> dst - src_v - (elem_size*len)
+        jl test                 # jump if < 0 to test
+        rrmovq %rcx, %r12       # otherwise multiply step by 8 and
+        addq %r12, %rcx
+        addq %r12, %rcx
+        addq %r12, %rcx
+        addq %r12, %rcx
+        addq %r12, %rcx
+        addq %r12, %rcx
+        addq %r12, %rcx
+        jmp loop                # jump while
+
+test:
+        rrmovq %rdx, %r12       # here i did the inside of if block
+        iaddq $-1, %r12
+        rrmovq %rbx, %r10
+        iaddq $-1, %r12
+        rrmovq %rbx, %r11
+        call mult
+        addq %r10, %rdi
+        addq %r10, %rsi
+        irmovq $-1, %rcx        # step = -1
+        rrmovq %rcx, %r12       # multiply  step by 8
+        addq %r12, %rcx
+        addq %r12, %rcx
+        addq %r12, %rcx
+        addq %r12, %rcx
+        addq %r12, %rcx
+        addq %r12, %rcx
+        addq %r12, %rcx
+
+loop:
+        mrmovq (%rsi), %r8      # while loop starts
+        xorq %r8, %rax
+        rmmovq %r8, (%rdi)
+        addq %rcx, %rdi
+        addq %rcx, %rsi
+        iaddq $-1, %rdx
+        jg loop                 # if len > 0 go loop again
+        ret                     # finally return
+
+
+.pos 0x300
+stack:
